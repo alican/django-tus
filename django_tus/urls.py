@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-from django.conf.urls import url
-from django.views.generic import TemplateView
+try:
+    from django.conf.urls import *
+except ImportError:  # django < 1.4
+    from django.conf.urls.defaults import *
 
-from . import views
-
-urlpatterns = [
-    url(r'', TemplateView.as_view(template_name="base.html")),
-    ]
+# place app url patterns here
