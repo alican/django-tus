@@ -56,6 +56,8 @@ Does the code actually work?
 Credits
 ---------
 
+    * http://tus.io/protocols/resumable-upload.html
+    * https://github.com/matthoskins1980/Flask-Tus
 
 
 MIT License
