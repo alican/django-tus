@@ -31,6 +31,7 @@ Add 'django_tus' to your INSTALLED_APPS setting.::
 )
 
 Add following urls to your urls.px.::
+
     url(r'^upload/$', TusUpload.as_view(), name='tus_upload'),
     url(r'^upload/(?P<resource_id>[0-9a-z-]+)$', TusUpload.as_view(), name='tus_upload_chunks'),
 
