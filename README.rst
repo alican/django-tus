@@ -8,7 +8,7 @@ django-tus
 .. image:: https://travis-ci.org/alican/django-tus.png?branch=master
     :target: https://travis-ci.org/alican/django-tus
 
-Your project description goes here
+Django app implementing server side of tus protocol to powering resumable file uploads for django projects.
 
 Documentation
 -------------
@@ -22,14 +22,23 @@ Install django-tus::
 
     pip install django-tus
 
-Then use it in a project::
 
-    import django_tus
+Add 'django_tus' to your INSTALLED_APPS setting.::
+
+    INSTALLED_APPS = (
+    ...
+    'django_tus',
+)
+
+Add following urls to your urls.px.::
+    url(r'^upload/$', TusUpload.as_view(), name='tus_upload'),
+    url(r'^upload/(?P<resource_id>[0-9a-z-]+)$', TusUpload.as_view(), name='tus_upload_chunks'),
+
 
 Features
 --------
 
-* TODO
+* -
 
 Running Tests
 --------------
@@ -45,10 +54,3 @@ Does the code actually work?
 Credits
 ---------
 
-Tools used in rendering this package:
-
-*  Cookiecutter_
-*  `cookiecutter-djangopackage`_
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`cookiecutter-djangopackage`: https://github.com/pydanny/cookiecutter-djangopackage
