@@ -45,13 +45,13 @@ Todo
 Running Tests
 --------------
 
-Does the code actually work?
+Activate your virtual env, then install the testing requirements with `pip install -r requirements_test.txt`.
 
-::
+Run the tests with `pytest`.
 
-    source <YOURVIRTUALENV>/bin/activate
-    (myenv) $ pip install -r requirements_test.txt
-    (myenv) $ python runtests.py
+You can even generate a coverage report with `pytest --cov=django_tus --cov-report=html`.
+
+You can run `tox` to test against multiple Python and Django versions.
 
 Credits
 ---------
