@@ -16,4 +16,4 @@ class TestUploadView(LiveServerTestCase):
         )
         uploader = tus_client.uploader('tests/files/hello_world.txt', chunk_size=200)
         uploader.upload()
-        assert uploader.verify_upload() is True
+        assert uploader.request.status_code == 204
