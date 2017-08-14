@@ -237,6 +237,9 @@ class TusUpload(View):
 
         new_offset = cache.incr("tus-uploads/{}/offset".format(resource_id), chunk_size)
         response['Upload-Offset'] = new_offset
+
+        response.status_code = 204
+
         logger.error("pre_finish_check")
         if file_size == new_offset:  # file transfer complete, rename from resource id to actual filename
             logger.error("post_finish_check")
