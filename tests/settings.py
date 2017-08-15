@@ -35,11 +35,11 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
 
-STATIC_URL = 'static'
+STATIC_URL = 'static/'
 
 MEDIA_ROOT = BASE_DIR + '/upload'
 
-MEDIA_URL = 'media'
+MEDIA_URL = 'media/'
 
 INSTALLED_APPS = (
     "django.contrib.auth",
