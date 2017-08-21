@@ -1,31 +1,21 @@
+import base64
+import logging
 import os
 import uuid
-import logging
-from django.http import HttpResponse
-from django.conf import settings
-import base64
-from django.views.generic import View
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.core.cache import cache
-from django.conf import settings
-from django.core.urlresolvers import reverse
 
+from django.core.cache import cache
+from django.http import HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
+
+from django_tus.conf import settings
 from django_tus.signals import tus_upload_finished_signal
 
 logger = logging.getLogger(__name__)
 
 
-TUS_SETTINGS = {}
-
 class TusUpload(View):
-
-    TUS_UPLOAD_URL = getattr(settings, "TUS_UPLOAD_URL", '/media')
-    TUS_UPLOAD_DIR = getattr(settings, "TUS_UPLOAD_DIR", os.path.join(settings.BASE_DIR, 'tmp/uploads/'))
-    TUS_DESTINATION_DIR = getattr(settings, "TUS_DESTINATION_DIR", settings.MEDIA_ROOT)
-    TUS_MAX_FILE_SIZE = getattr(settings, "TUS_MAX_FILE_SIZE", 4294967296)  # in bytes
-    TUS_FILE_OVERWRITE = getattr(settings, "TUS_FILE_OVERWRITE", True)
-    TUS_TIMEOUT = getattr(settings, "TUS_TIMEOUT", 3600)
 
     tus_api_version = '1.0.0'
     tus_api_version_supported = ['1.0.0', ]
@@ -46,7 +36,7 @@ class TusUpload(View):
         response['Tus-Resumable'] = self.tus_api_version
         response['Tus-Version'] = ",".join(self.tus_api_version_supported)
         response['Tus-Extension'] = ",".join(self.tus_api_extensions)
-        response['Tus-Max-Size'] = self.TUS_MAX_FILE_SIZE
+        response['Tus-Max-Size'] = settings.TUS_MAX_FILE_SIZE
         response['Access-Control-Allow-Origin'] = "*"
         response['Access-Control-Allow-Methods'] = "PATCH,HEAD,GET,POST,OPTIONS"
         response['Access-Control-Expose-Headers'] = "Tus-Resumable,upload-length,upload-metadata,Location,Upload-Offset"
@@ -80,7 +70,7 @@ class TusUpload(View):
             metadata[key] = base64.b64decode(value)
 
         if metadata.get("filename", None) and metadata.get(
-                "filename").upper() in [f.upper() for f in os.listdir(os.path.dirname(self.TUS_UPLOAD_DIR))]:
+                "filename").upper() in [f.upper() for f in os.listdir(os.path.dirname(settings.TUS_UPLOAD_DIR))]:
             response['Tus-File-Name'] = metadata.get("filename")
             response['Tus-File-Exists'] = True
         else:
@@ -122,7 +112,7 @@ class TusUpload(View):
         if request.method == 'OPTIONS':
             # eigene Methode
             response['Tus-Extension'] = ",".join(self.tus_api_extensions)
-            response['Tus-Max-Size'] = self.TUS_MAX_FILE_SIZE
+            response['Tus-Max-Size'] = settings.TUS_MAX_FILE_SIZE
             response.status_code = 204
             return response
 
@@ -142,7 +132,7 @@ class TusUpload(View):
 
         try:
             if os.path.lexists(
-                    os.path.join(self.TUS_UPLOAD_DIR, metadata.get("filename"))) and self.TUS_FILE_OVERWRITE is False:
+                    os.path.join(settings.TUS_UPLOAD_DIR, metadata.get("filename"))) and settings.TUS_FILE_OVERWRITE is False:
                 response.status_code = 409
                 return response
         except:
@@ -153,13 +143,13 @@ class TusUpload(View):
         file_size = int(request.META.get("HTTP_UPLOAD_LENGTH", "0"))
         resource_id = str(uuid.uuid4())
 
-        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename")), self.TUS_TIMEOUT)
-        cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, self.TUS_TIMEOUT)
-        cache.add("tus-uploads/{}/offset".format(resource_id), 0, self.TUS_TIMEOUT)
-        cache.add("tus-uploads/{}/metadata".format(resource_id), metadata, self.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename")), settings.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, settings.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/offset".format(resource_id), 0, settings.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/metadata".format(resource_id), metadata, settings.TUS_TIMEOUT)
 
         try:
-            f = open(os.path.join(self.TUS_UPLOAD_DIR, resource_id), "wb")
+            f = open(os.path.join(settings.TUS_UPLOAD_DIR, resource_id), "wb")
             f.seek(file_size)
             f.write(b"\0")
             f.close()
@@ -207,7 +197,7 @@ class TusUpload(View):
         file_offset = int(request.META.get("HTTP_UPLOAD_OFFSET", 0))
         chunk_size = int(request.META.get("CONTENT_LENGTH", 102400))
 
-        upload_file_path = os.path.join(self.TUS_UPLOAD_DIR, resource_id)
+        upload_file_path = os.path.join(settings.TUS_UPLOAD_DIR, resource_id)
         if filename is None or os.path.lexists(upload_file_path) is False:
             response.status_code = 410
             return response
@@ -245,7 +235,7 @@ class TusUpload(View):
             logger.error("post_finish_check")
 
             filename = uuid.uuid4().hex + "_" + filename
-            os.rename(upload_file_path, os.path.join(self.TUS_DESTINATION_DIR, filename))
+            os.rename(upload_file_path, os.path.join(settings.TUS_DESTINATION_DIR, filename))
             cache.delete_many([
                 "tus-uploads/{}/file_size".format(resource_id),
                 "tus-uploads/{}/filename".format(resource_id),
@@ -259,11 +249,9 @@ class TusUpload(View):
                 filename=filename,
                 upload_file_path=upload_file_path,
                 file_size=file_size,
-                upload_url=self.TUS_UPLOAD_URL,
-                destination_folder=self.TUS_DESTINATION_DIR)
+                upload_url=settings.TUS_UPLOAD_URL,
+                destination_folder=settings.TUS_DESTINATION_DIR)
 
             self.finished()
 
         return response
-
-

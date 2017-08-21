@@ -1,6 +1,7 @@
 django>=1.9.6
 pytest-cov
 pytest-django
+pytest-logger
 pytest-pythonpath
 pytest-env
 tox
