@@ -37,7 +37,7 @@ STATICFILES_FINDERS = (
 
 STATIC_URL = 'static/'
 
-MEDIA_ROOT = BASE_DIR + '/upload'
+MEDIA_ROOT = os.path.dirname(os.path.abspath(__file__)) + '/upload'
 
 MEDIA_URL = 'media/'
 

@@ -42,7 +42,9 @@ setup(
         'django_tus',
     ],
     include_package_data=True,
-    install_requires=[],
+    install_requires=[
+        'django-appconf',
+    ],
     license="MIT",
     zip_safe=False,
     keywords='django-tus',
