@@ -1,5 +1,9 @@
 from django.test import LiveServerTestCase
-from django.urls import reverse
+
+try:
+    from django.urls import reverse
+except ImportError:  # django < 1.10
+    from django.core.urlresolvers import reverse
 
 from tusclient import client
 
