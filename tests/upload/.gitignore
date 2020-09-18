@@ -1,0 +1,8 @@
+# This is the directory where sucessfully uploaded files will be moved to.
+# Do not manually add files in this directory, they will be ignored by git.
+
+# Ignore everything in this directory:
+*
+
+# Except this file:
+!.gitignore

@@ -42,7 +42,9 @@ setup(
         'django_tus',
     ],
     include_package_data=True,
-    install_requires=[],
+    install_requires=[
+        'django-appconf',
+    ],
     license="MIT",
     zip_safe=False,
     keywords='django-tus',
@@ -59,5 +61,6 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 )
