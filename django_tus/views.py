@@ -15,6 +15,7 @@ from django_tus.signals import tus_upload_finished_signal
 logger = logging.getLogger(__name__)
 
 
+TUS_SETTINGS = {}
 class TusUpload(View):
 
     tus_api_version = '1.0.0'
@@ -192,7 +193,6 @@ class TusUpload(View):
         file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
         metadata = cache.get("tus-uploads/{}/metadata".format(resource_id))
         offset = cache.get("tus-uploads/{}/offset".format(resource_id))
-
 
         file_offset = int(request.META.get("HTTP_UPLOAD_OFFSET", 0))
         chunk_size = int(request.META.get("CONTENT_LENGTH", 102400))

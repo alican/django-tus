@@ -1,2 +1,2 @@
-django>=1.9.6
+django>=3.0
 django-appconf
