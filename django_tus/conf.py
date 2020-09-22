@@ -14,13 +14,9 @@ class DjangoTusAppConf(AppConf):
         prefix = 'tus'
 
     UPLOAD_URL = '/media'
-
     MAX_FILE_SIZE = 4294967296  # in bytes, default is 4 GB
-
     FILE_OVERWRITE = True
-
     TIMEOUT = 3600  # in seconds
-
     UPLOAD_DIR = ''
 
     def configure_upload_dir(self, value):
@@ -31,7 +27,7 @@ class DjangoTusAppConf(AppConf):
 
         # Build a default setting based on BASE_DIR, if available.
         if hasattr(settings, 'BASE_DIR'):
-            return os.path.join(settings.BASE_DIR, 'tmp/uploads')
+            return os.path.join(settings.BASE_DIR, 'tmp', 'uploads')
 
         # Setting is not configured.
         return ''

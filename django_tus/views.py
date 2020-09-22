@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 TUS_SETTINGS = {}
+
+
 class TusUpload(View):
 
     tus_api_version = '1.0.0'
@@ -28,8 +30,6 @@ class TusUpload(View):
         override_method = self.request.META.get('HTTP_X_HTTP_METHOD_OVERRIDE', None)
         if override_method:
             self.request.method = override_method
-        logger.error("TUS dispatch", extra={'requestMETA': self.request.META, "requestMethod": self.request.method})
-
         return super(TusUpload, self).dispatch(*args, **kwargs)
 
     def get_tus_response(self):
@@ -80,22 +80,17 @@ class TusUpload(View):
 
     def options(self, request, *args, **kwargs):
         """
-
-
         :param request:
         :param args:
         :param kwargs:
         :return response:
         """
-
         response = self.get_tus_response()
         response.status_code = 204
         return response
 
     def post(self, request, *args, **kwargs):
-
         """
-
         :param request:
         :param args:
         :param kwargs:
@@ -109,14 +104,6 @@ class TusUpload(View):
             response.status_code = 500
             response.reason_phrase = "Received File upload for unsupported file transfer protocol"
 
-
-        if request.method == 'OPTIONS':
-            # eigene Methode
-            response['Tus-Extension'] = ",".join(self.tus_api_extensions)
-            response['Tus-Max-Size'] = settings.TUS_MAX_FILE_SIZE
-            response.status_code = 204
-            return response
-
         metadata = {}
         upload_metadata = request.META.get("HTTP_UPLOAD_METADATA", None)
 
@@ -124,6 +111,7 @@ class TusUpload(View):
         if message_id:
             message_id = base64.b64decode(message_id)
             metadata["message_id"] = message_id
+
         logger.error("TUS Request", extra={'request': request.META})
 
         if upload_metadata:
@@ -186,8 +174,7 @@ class TusUpload(View):
 
         response = self.get_tus_response()
 
-        resource_id = kwargs.get('resource_id', None)
-
+        resource_id = str(kwargs.get('resource_id', None))
 
         filename = cache.get("tus-uploads/{}/filename".format(resource_id))
         file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
