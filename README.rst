@@ -18,9 +18,9 @@ The full documentation is at https://django-tus.readthedocs.org.
 Quickstart
 ----------
 
-Install django-tus::
+Install django-tus for Django 3.x::
 
-    pip install django-tus
+    pip install https://github.com/alican/django-tus/archive/Django3x.zip
 
 
 Add 'django_tus' to your INSTALLED_APPS setting.::
