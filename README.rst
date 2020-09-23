@@ -28,9 +28,10 @@ Add 'django_tus' to your INSTALLED_APPS setting.::
     INSTALLED_APPS = (
     ...
     'django_tus',
-)
+    )
 
 Add following urls to your urls.py.::
+
     from django.conf.urls import url
     from django_tus.views import TusUpload
     ...
