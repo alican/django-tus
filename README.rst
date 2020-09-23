@@ -31,7 +31,9 @@ Add 'django_tus' to your INSTALLED_APPS setting.::
 )
 
 Add following urls to your urls.py.::
-
+    from django.conf.urls import url
+    from django_tus.views import TusUpload
+    ...
     url(r'^upload/$', TusUpload.as_view(), name='tus_upload'),
     url(r'^upload/(?P<resource_id>[0-9a-z-]+)$', TusUpload.as_view(), name='tus_upload_chunks'),
 
@@ -63,7 +65,7 @@ Credits
 MIT License
 ---------
 
-Copyright (c) 2016, Alican Toprak
+Copyright (c) 2016,2020, Alican Toprak
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
