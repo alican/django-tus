@@ -39,6 +39,9 @@ Add following urls to your urls.py.::
     url(r'^upload/(?P<resource_id>[0-9a-z-]+)$', TusUpload.as_view(), name='tus_upload_chunks'),
 
 
+If needed, add the following to your settings.py.::
+    TUS_UPLOAD_DIR=<Directory for temporary, partial uploads>
+    TUS_DESTINATION_DIR=<Directory for finished uploads>
 
 Todo
 --------
