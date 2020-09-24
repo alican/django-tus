@@ -4,241 +4,225 @@ import os
 import uuid
 
 from django.core.cache import cache
-from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from django_tus.conf import settings
+from django_tus.response import TusResponse
 from django_tus.signals import tus_upload_finished_signal
 
 logger = logging.getLogger(__name__)
 
-
 TUS_SETTINGS = {}
 
 
-class TusUpload(View):
+class TusFile:
+    def __init__(self, resource_id):
+        self.resource_id = resource_id
 
-    tus_api_version = '1.0.0'
-    tus_api_version_supported = ['1.0.0', ]
-    tus_api_extensions = ['creation', 'termination', 'file-check']
+        self.filename = cache.get("tus-uploads/{}/filename".format(resource_id))
+        self.file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
+        self.metadata = cache.get("tus-uploads/{}/metadata".format(resource_id))
+        self.offset = cache.get("tus-uploads/{}/offset".format(resource_id))
+
+
+    @staticmethod
+    def create_initial_file(metadata, file_size):
+        logger.error(msg=metadata.get("filename"))
+        resource_id = str(uuid.uuid4())
+
+        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename").decode('UTF-8')),
+                  settings.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, settings.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/offset".format(resource_id), 0, settings.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/metadata".format(resource_id), metadata, settings.TUS_TIMEOUT)
+
+        tus_file = TusFile(resource_id)
+        tus_file.write_init_file()
+        return tus_file
+
+    def is_valid(self):
+        return self.filename is not None and os.path.lexists(self.get_path())
+
+    def get_path(self):
+        return os.path.join(settings.TUS_UPLOAD_DIR, self.resource_id)
+
+    def rename(self):
+
+        self.filename = uuid.uuid4().hex + "_" + self.filename
+        os.rename(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
+
+    def delete(self):
+        cache.delete_many([
+            "tus-uploads/{}/file_size".format(self.resource_id),
+            "tus-uploads/{}/filename".format(self.resource_id),
+            "tus-uploads/{}/offset".format(self.resource_id),
+            "tus-uploads/{}/metadata".format(self.resource_id),
+        ])
+
+    def _write_file(self, path, offset, content):
+        with open(path, "wb") as outfile:
+            outfile.seek(offset)
+            outfile.write(content)
+
+    def write_init_file(self):
+        try:
+            self._write_file(self.get_path(), self.file_size, b"\0")
+        except IOError as e:
+            error_message = "Unable to create file: {}".format(e)
+            logger.error(error_message, exc_info=True)
+            return TusResponse(status=500, reason=error_message)
+
+    def write_chunk(self, chunk):
+        try:
+            self._write_file(self.get_path(), chunk.offset, chunk.content)
+            self.offset = cache.incr("tus-uploads/{}/offset".format(self.resource_id), chunk.chunk_size)
+
+        except IOError:
+            logger.error("patch", extra={'request': chunk.META, 'tus': {
+                "resource_id": self.resource_id,
+                "filename": self.filename,
+                "file_size": self.file_size,
+                "metadata": self.metadata,
+                "offset": self.offset,
+                "upload_file_path": self.get_path(),
+            }})
+            return TusResponse(status=500)
+
+    def is_complete(self):
+        return self.offset == self.file_size
+
+    def __str__(self):
+        return "{} ({})".format(self.filename, self.resource_id)
+
+
+class TusInitFile:
+
+    def __init__(self, offset, chunk_size, content):
+        self.offset = offset
+        self.chunk_size = chunk_size
+        self.content = content
+
+
+class TusChunk:
+    def __init__(self, request):
+        self.META = request.META
+        self.offset = int(request.META.get("HTTP_UPLOAD_OFFSET", 0))
+        self.chunk_size = int(request.META.get("CONTENT_LENGTH", 102400))
+        self.content = request.body
+
+
+class TusUpload(View):
     on_finish = None
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
-        override_method = self.request.META.get('HTTP_X_HTTP_METHOD_OVERRIDE', None)
+
+        if not self.request.META.get("HTTP_TUS_RESUMABLE"):
+            return TusResponse(status=405, content="Method Not Allowed")
+
+        override_method = self.request.META.get('HTTP_X_HTTP_METHOD_OVERRIDE')
         if override_method:
             self.request.method = override_method
+
         return super(TusUpload, self).dispatch(*args, **kwargs)
-
-    def get_tus_response(self):
-        response = HttpResponse()
-        response['Tus-Resumable'] = self.tus_api_version
-        response['Tus-Version'] = ",".join(self.tus_api_version_supported)
-        response['Tus-Extension'] = ",".join(self.tus_api_extensions)
-        response['Tus-Max-Size'] = settings.TUS_MAX_FILE_SIZE
-        response['Access-Control-Allow-Origin'] = "*"
-        response['Access-Control-Allow-Methods'] = "PATCH,HEAD,GET,POST,OPTIONS"
-        response['Access-Control-Expose-Headers'] = "Tus-Resumable,upload-length,upload-metadata,Location,Upload-Offset"
-        response['Access-Control-Allow-Headers'] = "Tus-Resumable,upload-length,upload-metadata,Location,Upload-Offset,content-type"
-        response['Cache-Control'] = 'no-store'
-
-        return response
 
     def finished(self):
         if self.on_finish is not None:
             self.on_finish()
 
-    def get(self, request, *args, **kwargs):
-
-        """
-
-        :param request:
-        :param args:
-        :param kwargs:
-        :return response:
-        """
-
+    def get_metadata(self, request):
         metadata = {}
-        response = self.get_tus_response()
-
-        if request.META.get("HTTP_TUS_RESUMABLE", None) is None:
-            return HttpResponse(status=405, content="Method Not Allowed")
-
-        for kv in request.META.get("HTTP_UPLOAD_METADATA", None).split(","):
-            (key, value) = kv.split(" ")
-            metadata[key] = base64.b64decode(value)
-
-        if metadata.get("filename", None) and metadata.get(
-                "filename").upper() in [f.upper() for f in os.listdir(os.path.dirname(settings.TUS_UPLOAD_DIR))]:
-            response['Tus-File-Name'] = metadata.get("filename")
-            response['Tus-File-Exists'] = True
-        else:
-            response['Tus-File-Exists'] = False
-        return response
+        if request.META.get("HTTP_UPLOAD_METADATA"):
+            for kv in request.META.get("HTTP_UPLOAD_METADATA").split(","):
+                splited_metadata = kv.split(" ")
+                if len(splited_metadata) == 2:
+                    key, value = splited_metadata
+                    metadata[key] = base64.b64decode(value)
+                else:
+                    metadata[splited_metadata[0]] = ""
+        return metadata
 
     def options(self, request, *args, **kwargs):
-        """
-        :param request:
-        :param args:
-        :param kwargs:
-        :return response:
-        """
-        response = self.get_tus_response()
-        response.status_code = 204
-        return response
+        return TusResponse(status=204)
 
     def post(self, request, *args, **kwargs):
-        """
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        response = self.get_tus_response()
 
-        if request.META.get("HTTP_TUS_RESUMABLE", None) is None:
-            # in dispatch auslagern?
-            logger.warning("Received File upload for unsupported file transfer protocol")
-            response.status_code = 500
-            response.reason_phrase = "Received File upload for unsupported file transfer protocol"
+        metadata = self.get_metadata(request)
 
-        metadata = {}
-        upload_metadata = request.META.get("HTTP_UPLOAD_METADATA", None)
-
-        message_id = request.META.get("HTTP_MESSAGE_ID", None)
+        message_id = request.META.get("HTTP_MESSAGE_ID")
         if message_id:
-            message_id = base64.b64decode(message_id)
-            metadata["message_id"] = message_id
+            metadata["message_id"] = base64.b64decode(message_id)
 
-        logger.error("TUS Request", extra={'request': request.META})
+        self.check_existing_file(metadata.get("filename"))
 
-        if upload_metadata:
-            for kv in upload_metadata.split(","):
-                (key, value) = kv.split(" ")
-                metadata[key] = base64.b64decode(value).decode("utf-8")
+        file_size = int(request.META.get("HTTP_UPLOAD_LENGTH", "0"))  # TODO: check min max upload size
 
-        try:
-            if os.path.lexists(
-                    os.path.join(settings.TUS_UPLOAD_DIR, metadata.get("filename"))) and settings.TUS_FILE_OVERWRITE is False:
-                response.status_code = 409
-                return response
-        except:
-            logger.error("Unable to access file", extra={'request': request.META, 'metadata': metadata})
-            #response.status_code = 409
-            #return response
+        tus_file = TusFile.create_initial_file(metadata, file_size)
 
-        file_size = int(request.META.get("HTTP_UPLOAD_LENGTH", "0"))
-        resource_id = str(uuid.uuid4())
+        return TusResponse(
+            status=201,
+            extra_headers={'Location': '{}{}'.format(request.build_absolute_uri(), tus_file.resource_id)})
 
-        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename")), settings.TUS_TIMEOUT)
-        cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, settings.TUS_TIMEOUT)
-        cache.add("tus-uploads/{}/offset".format(resource_id), 0, settings.TUS_TIMEOUT)
-        cache.add("tus-uploads/{}/metadata".format(resource_id), metadata, settings.TUS_TIMEOUT)
+    def head(self, request, resource_id):
 
-        try:
-            f = open(os.path.join(settings.TUS_UPLOAD_DIR, resource_id), "wb")
-            f.seek(file_size)
-            f.write(b"\0")
-            f.close()
-        except IOError as e:
-            logger.error("Unable to create file: {}".format(e), exc_info=True, extra={
-            'request': request,
-            })
-            response.status_code = 500
-            return response
-
-        response.status_code = 201
-        response['Location'] = '{}{}'.format(request.build_absolute_uri(), resource_id)
-        return response
-
-    def head(self, request, *args, **kwargs):
-        response = self.get_tus_response()
-        resource_id = kwargs.get('resource_id', None)
+        resource_id = str(resource_id)
 
         offset = cache.get("tus-uploads/{}/offset".format(resource_id))
         file_size = cache.get("tus-uploads/{}/file_size".format(resource_id))
+
         if offset is None:
-            response.status_code = 404
-            return response
+            return TusResponse(status=404)
 
-        else:
-            response.status_code = 200
-            response['Upload-Offset'] = offset
-            response['Upload-Length'] = file_size
+        return TusResponse(status=200,
+                           extra_headers={
+                               'Upload-Offset': offset,
+                               'Upload-Length': file_size})
 
-        return response
+    def patch(self, request, resource_id, *args, **kwargs):
 
-    def patch(self, request, *args, **kwargs):
+        tus_file = TusFile(str(resource_id))
+        chunk = TusChunk(request)
 
-        response = self.get_tus_response()
+        if not tus_file.is_valid():
+            return TusResponse(status=410)
 
-        resource_id = str(kwargs.get('resource_id', None))
+        if chunk.offset != tus_file.offset:
+            return TusResponse(status=409)
 
-        filename = cache.get("tus-uploads/{}/filename".format(resource_id))
-        file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
-        metadata = cache.get("tus-uploads/{}/metadata".format(resource_id))
-        offset = cache.get("tus-uploads/{}/offset".format(resource_id))
+        if chunk.offset > tus_file.file_size:
+            return TusResponse(status=413)
 
-        file_offset = int(request.META.get("HTTP_UPLOAD_OFFSET", 0))
-        chunk_size = int(request.META.get("CONTENT_LENGTH", 102400))
+        tus_file.write_chunk(chunk=chunk)
 
-        upload_file_path = os.path.join(settings.TUS_UPLOAD_DIR, resource_id)
-        if filename is None or os.path.lexists(upload_file_path) is False:
-            response.status_code = 410
-            return response
+        if tus_file.is_complete():
+            # file transfer complete, rename from resource id to actual filename
+            tus_file.rename()
+            tus_file.delete()
 
-        if file_offset != offset:  # check to make sure we're in sync
-            response.status_code = 409  # HTTP 409 Conflict
-            return response
-
-        logger.error("patch", extra={'request': self.request.META, 'tus': {
-            "resource_id": resource_id,
-            "filename": filename,
-            "file_size": file_size,
-            "metadata": metadata,
-            "offset": offset,
-            "upload_file_path": upload_file_path,
-        }})
-
-
-        try:
-            file = open(upload_file_path, "r+b")
-        except IOError:
-            file = open(upload_file_path, "wb")
-        finally:
-            file.seek(file_offset)
-            file.write(request.body)
-            file.close()
-
-        new_offset = cache.incr("tus-uploads/{}/offset".format(resource_id), chunk_size)
-        response['Upload-Offset'] = new_offset
-
-        response.status_code = 204
-
-        logger.error("pre_finish_check")
-        if file_size == new_offset:  # file transfer complete, rename from resource id to actual filename
-            logger.error("post_finish_check")
-
-            filename = uuid.uuid4().hex + "_" + filename
-            os.rename(upload_file_path, os.path.join(settings.TUS_DESTINATION_DIR, filename))
-            cache.delete_many([
-                "tus-uploads/{}/file_size".format(resource_id),
-                "tus-uploads/{}/filename".format(resource_id),
-                "tus-uploads/{}/offset".format(resource_id),
-                "tus-uploads/{}/metadata".format(resource_id),
-            ])
-            # sending signal
-            tus_upload_finished_signal.send(
-                sender=self.__class__,
-                metadata=metadata,
-                filename=filename,
-                upload_file_path=upload_file_path,
-                file_size=file_size,
-                upload_url=settings.TUS_UPLOAD_URL,
-                destination_folder=settings.TUS_DESTINATION_DIR)
-
+            self.send_signal(tus_file)
             self.finished()
 
-        return response
+        return TusResponse(status=204, extra_headers={'Upload-Offset': tus_file.offset})
+
+    @staticmethod
+    def check_existing_file(filename: str):
+
+        if settings.TUS_FILE_OVERWRITE:
+            return
+
+        if os.path.lexists(os.path.join(settings.TUS_UPLOAD_DIR, filename)):
+            return TusResponse(status=409, reason="File already exists")
+
+    def send_signal(self, tus_file):
+        tus_upload_finished_signal.send(
+            sender=self.__class__,
+            metadata=tus_file.metadata,
+            filename=tus_file.filename,
+            upload_file_path=tus_file.get_path(),
+            file_size=tus_file.file_size,
+            upload_url=settings.TUS_UPLOAD_URL,
+            destination_folder=settings.TUS_DESTINATION_DIR)
+
+
