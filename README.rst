@@ -45,7 +45,7 @@ If needed, add the following to your settings.py.::
 
 Todo
 --------
-
+* Parallel upload is not implemented
 * More Tus-Extensions
 
 Running Tests
