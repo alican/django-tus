@@ -19,6 +19,7 @@ class DjangoTusAppConf(AppConf):
     TIMEOUT = 3600  # in seconds
     UPLOAD_DIR = ''
 
+
     def configure_upload_dir(self, value):
 
         # The setting has been configured, return it.
