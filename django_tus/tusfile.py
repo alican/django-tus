@@ -1,6 +1,9 @@
 import logging
 import os
 import uuid
+import string
+import random
+
 
 from django.conf import settings
 from django.core.cache import cache
@@ -8,6 +11,41 @@ from django.core.cache import cache
 from django_tus.response import TusResponse
 
 logger = logging.getLogger(__name__)
+
+
+class FilenameGenerator:
+    def __init__(self, filename: str = None):
+        if not filename or not isinstance(filename, str):
+            filename = self.random_string()
+        self.filename = filename
+
+    def get_name_and_extension(self):
+        return os.path.splitext(self.filename)
+
+    def create_random_name(self) -> str:
+        name, extension = self.get_name_and_extension()
+        random_string = FilenameGenerator.random_string()
+        return "".join((random_string, extension))
+
+    def create_random_suffix_name(self) -> str:
+        name, extension = self.get_name_and_extension()
+        random_string = FilenameGenerator.random_string()
+        return "".join((name, ".", random_string, extension))
+
+    @classmethod
+    def random_string(cls, length: int = 11) -> str:
+        letters_and_digits = string.ascii_letters + string.digits
+        return''.join((random.choice(letters_and_digits) for i in range(length)))
+
+    def create_incremented_name(self) -> str:
+        index = 1
+        name, extension = self.get_name_and_extension()
+        while True:
+            filename = '{}.{:04d}{}'.format(name, index, extension)
+            index += 1
+            if not os.path.lexists(os.path.join(settings.TUS_DESTINATION_DIR, filename)):
+                break
+        return filename
 
 
 class TusFile:
@@ -43,10 +81,23 @@ class TusFile:
 
     def rename(self):
 
-        self.filename = uuid.uuid4().hex + "_" + self.filename
+        setting = settings.TUS_FILE_NAME_FORMAT
+
+        if setting == 'keep':
+            if self.check_existing_file(self.filename):
+                return TusResponse(status=409, reason="File with same name already exists")
+        elif setting == 'random':
+            self.filename = FilenameGenerator(self.filename).create_random_name()
+        elif setting == 'random-suffix':
+            self.filename = FilenameGenerator(self.filename).create_random_suffix_name()
+        elif setting == 'increment':
+            self.filename = FilenameGenerator(self.filename).create_incremented_name()
+        else:
+            return ValueError()
         os.rename(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
 
-    def delete(self):
+
+    def clean(self):
         cache.delete_many([
             "tus-uploads/{}/file_size".format(self.resource_id),
             "tus-uploads/{}/filename".format(self.resource_id),
@@ -58,6 +109,11 @@ class TusFile:
         with open(path, "wb") as outfile:
             outfile.seek(offset)
             outfile.write(content)
+
+    @staticmethod
+    def check_existing_file(filename: str):
+        return os.path.lexists(os.path.join(settings.TUS_DESTINATION_DIR, filename))
+
 
     def write_init_file(self):
         try:

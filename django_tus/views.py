@@ -9,7 +9,7 @@ from django.views.generic import View
 from django_tus.conf import settings
 from django_tus.response import TusResponse
 from django_tus.signals import tus_upload_finished_signal
-from django_tus.tusfile import TusFile, TusChunk
+from django_tus.tusfile import TusFile, TusChunk, FilenameGenerator
 from django.core.cache import cache
 
 
@@ -56,11 +56,14 @@ class TusUpload(View):
 
         metadata = self.get_metadata(request)
 
+        metadata["filename"] = self.validate_filename(metadata)
+
         message_id = request.META.get("HTTP_MESSAGE_ID")
         if message_id:
             metadata["message_id"] = base64.b64decode(message_id)
 
-        self.check_existing_file(metadata.get("filename"))
+        if settings.TUS_EXISTING_FILE == 'error' and settings.TUS_FILE_NAME_FORMAT == 'keep' and TusFile.check_existing_file(metadata.get("filename")):
+            return TusResponse(status=409, reason="File with same name already exists")
 
         file_size = int(request.META.get("HTTP_UPLOAD_LENGTH", "0"))  # TODO: check min max upload size
 
@@ -104,21 +107,12 @@ class TusUpload(View):
         if tus_file.is_complete():
             # file transfer complete, rename from resource id to actual filename
             tus_file.rename()
-            tus_file.delete()
+            tus_file.clean()
 
             self.send_signal(tus_file)
             self.finished()
 
         return TusResponse(status=204, extra_headers={'Upload-Offset': tus_file.offset})
-
-    @staticmethod
-    def check_existing_file(filename: str):
-
-        if settings.TUS_FILE_OVERWRITE:
-            return
-
-        if os.path.lexists(os.path.join(settings.TUS_UPLOAD_DIR, filename)):
-            return TusResponse(status=409, reason="File already exists")
 
     def send_signal(self, tus_file):
         tus_upload_finished_signal.send(
@@ -129,5 +123,11 @@ class TusUpload(View):
             file_size=tus_file.file_size,
             upload_url=settings.TUS_UPLOAD_URL,
             destination_folder=settings.TUS_DESTINATION_DIR)
+
+    def validate_filename(self, metadata):
+        filename = metadata.get("filename", "")
+        if not filename:
+            filename = FilenameGenerator.random_string(16)
+        return filename
 
 
