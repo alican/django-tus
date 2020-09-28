@@ -4,6 +4,7 @@ import uuid
 import string
 import random
 from django.core.files import File
+from django.core.files.storage import FileSystemStorage
 
 
 from django.conf import settings
@@ -50,6 +51,10 @@ class FilenameGenerator:
 
 
 class TusFile:
+
+    def get_storage(self):
+        return FileSystemStorage()
+
     def __init__(self, resource_id):
         self.resource_id = resource_id
         self.filename = cache.get("tus-uploads/{}/filename".format(resource_id))
@@ -91,7 +96,8 @@ class TusFile:
             self.filename = FilenameGenerator(self.filename).create_incremented_name()
         else:
             return ValueError()
-        os.rename(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
+
+        os.renames(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
 
 
     def clean(self):
