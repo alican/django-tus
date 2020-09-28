@@ -60,11 +60,13 @@ class TusFile:
 
     @staticmethod
     def create_initial_file(metadata, file_size):
-        logger.error(msg=metadata.get("filename"))
         resource_id = str(uuid.uuid4())
+        filename = metadata.get("filename")
+        if isinstance(filename, bytes):
+            filename = filename.decode('utf-8')
 
-        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename")),
-                  settings.TUS_TIMEOUT)
+        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(filename), settings.TUS_TIMEOUT)
+
         cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, settings.TUS_TIMEOUT)
         cache.add("tus-uploads/{}/offset".format(resource_id), 0, settings.TUS_TIMEOUT)
         cache.add("tus-uploads/{}/metadata".format(resource_id), metadata, settings.TUS_TIMEOUT)
@@ -82,9 +84,6 @@ class TusFile:
     def rename(self):
 
         setting = settings.TUS_FILE_NAME_FORMAT
-
-        if isinstance(self.filename, bytes):
-            self.filename = self.filename.decode('utf-8')
 
         if setting == 'keep':
             if self.check_existing_file(self.filename):
