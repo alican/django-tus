@@ -2,15 +2,17 @@
 
 language: python
 
-dist: trusty
+dist: focal
 
 sudo: true
 
 python:
+  - "3.8"
+  - "3.7"
   - "3.6"
   - "3.5"
-  - "3.4"
-  - "2.7"
+
+env: DJANGO_SETTINGS_MODULE=tests.settings
 
 install:
   - pip install tox

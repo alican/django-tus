@@ -1,6 +1,9 @@
-django>=3.1.1
 coverage==5.3
 flake8>=3.8.3
 mock>=4.0.2
 tox>=3.20.0
 pytest-pythonpath
+pytest-cov
+pytest-django
+pytest-logger
+tuspy
