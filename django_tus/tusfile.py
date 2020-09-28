@@ -3,6 +3,7 @@ import os
 import uuid
 import string
 import random
+from django.core.files import File
 
 
 from django.conf import settings
@@ -51,7 +52,6 @@ class FilenameGenerator:
 class TusFile:
     def __init__(self, resource_id):
         self.resource_id = resource_id
-
         self.filename = cache.get("tus-uploads/{}/filename".format(resource_id))
         self.file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
         self.metadata = cache.get("tus-uploads/{}/metadata".format(resource_id))
@@ -61,10 +61,7 @@ class TusFile:
     @staticmethod
     def create_initial_file(metadata, file_size):
         resource_id = str(uuid.uuid4())
-        filename = metadata.get("filename")
-
-        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(filename), settings.TUS_TIMEOUT)
-
+        cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename")), settings.TUS_TIMEOUT)
         cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, settings.TUS_TIMEOUT)
         cache.add("tus-uploads/{}/offset".format(resource_id), 0, settings.TUS_TIMEOUT)
         cache.add("tus-uploads/{}/metadata".format(resource_id), metadata, settings.TUS_TIMEOUT)
@@ -106,7 +103,8 @@ class TusFile:
         ])
 
     def _write_file(self, path, offset, content):
-        with open(path, "wb") as outfile:
+        with open(path, "wb") as f:
+            outfile = File(f)
             outfile.seek(offset)
             outfile.write(content)
 
