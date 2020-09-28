@@ -62,8 +62,6 @@ class TusFile:
     def create_initial_file(metadata, file_size):
         resource_id = str(uuid.uuid4())
         filename = metadata.get("filename")
-        if isinstance(filename, bytes):
-            filename = filename.decode('utf-8')
 
         cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(filename), settings.TUS_TIMEOUT)
 

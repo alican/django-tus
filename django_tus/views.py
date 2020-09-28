@@ -44,9 +44,12 @@ class TusUpload(View):
                 splited_metadata = kv.split(" ")
                 if len(splited_metadata) == 2:
                     key, value = splited_metadata
-                    metadata[key] = base64.b64decode(value)
+                    value = base64.b64decode(value)
+                    if isinstance(value, bytes):
+                        value = value.decode()
+                    metadata[key] = value
                 else:
-                    metadata[splited_metadata[0]] = base64.b64decode("")
+                    metadata[splited_metadata[0]] = ""
         return metadata
 
     def options(self, request, *args, **kwargs):
@@ -127,7 +130,7 @@ class TusUpload(View):
     def validate_filename(self, metadata):
         filename = metadata.get("filename", "")
         if not filename:
-            filename = base64.b64decode(FilenameGenerator.random_string(16))
+            filename = FilenameGenerator.random_string(16)
         return filename
 
 
