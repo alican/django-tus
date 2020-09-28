@@ -12,6 +12,8 @@ python:
   - "3.6"
   - "3.5"
 
+env: DJANGO_SETTINGS_MODULE=tests.settings
+
 install:
   - pip install tox
   - pip install tox-travis
