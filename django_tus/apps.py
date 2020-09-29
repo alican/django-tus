@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.apps import AppConfig
 
 from django_tus.conf import settings
@@ -30,3 +32,6 @@ class DjangoTusConfig(AppConfig):
     def ready(self):
         from django.core.checks import register, Tags
         register(django_tus_config_check, Tags.compatibility, deploy=False)
+        Path(settings.TUS_DESTINATION_DIR).mkdir(parents=True, exist_ok=True)
+        Path(settings.TUS_UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+
