@@ -11,6 +11,7 @@ from django_tus.response import TusResponse
 from django_tus.signals import tus_upload_finished_signal
 from django_tus.tusfile import TusFile, TusChunk, FilenameGenerator
 from django.core.cache import cache
+from pathvalidate import is_valid_filename, sanitize_filename
 
 
 logger = logging.getLogger(__name__)
@@ -130,7 +131,7 @@ class TusUpload(View):
 
     def validate_filename(self, metadata):
         filename = metadata.get("filename", "")
-        if not filename:
+        if not is_valid_filename(filename):
             filename = FilenameGenerator.random_string(16)
         return filename
 
