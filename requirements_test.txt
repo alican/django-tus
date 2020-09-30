@@ -1,3 +1,4 @@
+-r requirements.txt
 coverage==5.3
 flake8>=3.8.3
 mock>=3.0.5
