@@ -10,13 +10,26 @@ django-tus
 
 Django app implementing server side of tus protocol to powering resumable file uploads for django projects.
 
+Supported Django/Python Versions
+---------------------------------
+
+    Django 2.2.x LTS and
+    Django 3.0.x, 3.1.x
+
+    Python > 3.5
+
 Documentation
 -------------
 
 The full documentation is at https://django-tus.readthedocs.org.
 
+Example project
+---------------
+
+This example django project includes a javascript TUS demo client and implements django-tus as tus server:: https://github.com/alican/django-tus-example/
+
 Quickstart
-----------
+-------------
 
 Install django-tus::
 
@@ -28,20 +41,26 @@ Add 'django_tus' to your INSTALLED_APPS setting.::
     INSTALLED_APPS = (
     ...
     'django_tus',
-)
+    )
 
 Add following urls to your urls.py.::
 
-    from django.conf.urls import url
-    from django_tus.views import TusUpload
-    ...
-    url(r'^upload/$', TusUpload.as_view(), name='tus_upload'),
-    url(r'^upload/(?P<resource_id>[0-9a-z-]+)$', TusUpload.as_view(), name='tus_upload_chunks'),
+    path('upload/', TusUpload.as_view(), name='tus_upload'),
+    path('upload/<uuid:resource_id>', TusUpload.as_view(), name='tus_upload_chunks'),
 
-If needed, add the following to your settings.py.::
-    TUS_UPLOAD_DIR=<Directory for temporary, partial uploads>
-    TUS_DESTINATION_DIR=<Directory for finished uploads>
 
+Configure and add this settings in your settings.py::
+
+    TUS_UPLOAD_DIR = os.path.join(BASE_DIR, 'tus_upload')
+    TUS_DESTINATION_DIR = os.path.join(BASE_DIR, 'media', 'uploads')
+    TUS_FILE_NAME_FORMAT = 'increment'  # Other options are: 'random-suffix', 'random', 'keep'
+    TUS_EXISTING_FILE = 'error'  #  Other options are: 'overwrite',  'error', 'rename'
+
+
+Django has a setting for maximal memory size for uploaded files. This setting needs to be higher than the chunksize of
+the tus client::
+
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
 
 Todo
 --------
@@ -68,9 +87,9 @@ Credits
 
 
 MIT License
----------
+-------------
 
-Copyright (c) 2016, Alican Toprak
+Copyright (c) 2020, Alican Toprak
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
