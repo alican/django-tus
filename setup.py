@@ -27,14 +27,16 @@ if sys.argv[-1] == 'tag':
     os.system("git push --tags")
     sys.exit()
 
-readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+
+def read(f):
+    return open(f, 'r', encoding='utf-8').read()
 
 setup(
     name='django-tus',
     version=version,
     description="Django app implementing server side of tus v1.0.0 powering resumable file uploads for django projects",
-    long_description=readme + '\n\n' + history,
+    long_description=read('README.md'),
     author='Alican Toprak',
     author_email='alican@querhin.com',
     url='https://github.com/alican/django-tus',
@@ -43,21 +45,28 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
+        'django>=2.2',
         'django-appconf',
+        'pathvalidate==2.3.0'
     ],
     license="MIT",
     zip_safe=False,
     keywords='django-tus',
+    python_requires=">=3.5",
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Framework :: Django',
-        'Framework :: Django :: 3',
+        'Framework :: Django :: 2.2',
+        'Framework :: Django :: 3.0',
+        'Framework :: Django :: 3.1',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
+        'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Topic :: Internet :: WWW/HTTP',
     ],
 )
