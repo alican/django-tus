@@ -50,6 +50,7 @@ setup(
         'pathvalidate==2.3.0'
     ],
     license="MIT",
+    long_description_content_type='text/x-rst',
     zip_safe=False,
     keywords='django-tus',
     python_requires=">=3.5",
