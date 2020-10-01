@@ -32,14 +32,21 @@ Add 'django_tus' to your INSTALLED_APPS setting.::
 
 Add following urls to your urls.py.::
 
+    from django.conf.urls import url
+    from django_tus.views import TusUpload
+    ...
     url(r'^upload/$', TusUpload.as_view(), name='tus_upload'),
     url(r'^upload/(?P<resource_id>[0-9a-z-]+)$', TusUpload.as_view(), name='tus_upload_chunks'),
 
+If needed, add the following to your settings.py.::
+    TUS_UPLOAD_DIR=<Directory for temporary, partial uploads>
+    TUS_DESTINATION_DIR=<Directory for finished uploads>
 
 
 Todo
 --------
 
+* Concatenation Tus extension is not implemented
 * More Tus-Extensions
 
 Running Tests
