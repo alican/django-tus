@@ -36,7 +36,7 @@ setup(
     name='django-tus',
     version=version,
     description="Django app implementing server side of tus v1.0.0 powering resumable file uploads for django projects",
-    long_description=read('README.md'),
+    long_description=read('README.rst'),
     author='Alican Toprak',
     author_email='alican@querhin.com',
     url='https://github.com/alican/django-tus',
