@@ -81,7 +81,6 @@ class TusUpload(View):
 
         resource_id = str(resource_id)
 
-
         offset = cache.get("tus-uploads/{}/offset".format(resource_id))
         file_size = cache.get("tus-uploads/{}/file_size".format(resource_id))
 

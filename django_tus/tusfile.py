@@ -96,8 +96,7 @@ class TusFile:
         else:
             return ValueError()
 
-        os.renames(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
-
+        os.rename(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
 
     def clean(self):
         cache.delete_many([
@@ -116,7 +115,6 @@ class TusFile:
     @staticmethod
     def check_existing_file(filename: str):
         return os.path.lexists(os.path.join(settings.TUS_DESTINATION_DIR, filename))
-
 
     def write_init_file(self):
         try:
