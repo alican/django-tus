@@ -106,19 +106,15 @@ class TusFile:
             "tus-uploads/{}/metadata".format(self.resource_id),
         ])
 
-    def _write_file(self, path, offset, content):
-        with open(path, "wb") as f:
-            outfile = File(f)
-            outfile.seek(offset)
-            outfile.write(content)
-
     @staticmethod
     def check_existing_file(filename: str):
         return os.path.lexists(os.path.join(settings.TUS_DESTINATION_DIR, filename))
 
     def write_init_file(self):
         try:
-            self._write_file(self.get_path(), self.file_size, b"\0")
+            with open(self.get_path(), 'wb') as f:
+                f.seek(self.file_size - 1)
+                f.write(b'\0')
         except IOError as e:
             error_message = "Unable to create file: {}".format(e)
             logger.error(error_message, exc_info=True)
@@ -126,7 +122,9 @@ class TusFile:
 
     def write_chunk(self, chunk):
         try:
-            self._write_file(self.get_path(), chunk.offset, chunk.content)
+            with open(self.get_path(), 'r+b') as f:
+                f.seek(chunk.offset)
+                f.write(chunk.content)
             self.offset = cache.incr("tus-uploads/{}/offset".format(self.resource_id), chunk.chunk_size)
 
         except IOError:
