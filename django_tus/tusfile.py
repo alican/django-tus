@@ -3,7 +3,6 @@ import os
 import uuid
 import string
 import random
-from django.core.files import File
 from django.core.files.storage import FileSystemStorage
 
 from django.conf import settings
@@ -54,7 +53,7 @@ class TusFile:
     def get_storage(self):
         return FileSystemStorage()
 
-    def __init__(self, resource_id):
+    def __init__(self, resource_id: str):
         self.resource_id = resource_id
         self.filename = cache.get("tus-uploads/{}/filename".format(resource_id))
         self.file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
@@ -63,7 +62,18 @@ class TusFile:
 
 
     @staticmethod
-    def create_initial_file(metadata, file_size):
+    def get_tusfile_or_404(resource_id):
+        if TusFile.resource_exists(str(resource_id)):
+            return TusFile(resource_id)
+        else:
+            raise TusResponse(status=404)
+
+    @staticmethod
+    def resource_exists(resource_id: str):
+        return cache.get("tus-uploads/{}/filename".format(resource_id), None) is not None
+
+    @staticmethod
+    def create_initial_file(metadata, file_size: int):
         resource_id = str(uuid.uuid4())
         cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename")), settings.TUS_TIMEOUT)
         cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, settings.TUS_TIMEOUT)

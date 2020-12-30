@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.http import HttpResponse
-import django_tus.conf
 from django_tus import tus_api_version, tus_api_version_supported, tus_api_extensions
 
 

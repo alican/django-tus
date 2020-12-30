@@ -1,6 +1,5 @@
 import base64
 import logging
-import os
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -10,9 +9,7 @@ from django_tus.conf import settings
 from django_tus.response import TusResponse
 from django_tus.signals import tus_upload_finished_signal
 from django_tus.tusfile import TusFile, TusChunk, FilenameGenerator
-from django.core.cache import cache
-from pathvalidate import is_valid_filename, sanitize_filename
-
+from pathvalidate import is_valid_filename
 
 logger = logging.getLogger(__name__)
 
@@ -79,22 +76,16 @@ class TusUpload(View):
 
     def head(self, request, resource_id):
 
-        resource_id = str(resource_id)
-
-        offset = cache.get("tus-uploads/{}/offset".format(resource_id))
-        file_size = cache.get("tus-uploads/{}/file_size".format(resource_id))
-
-        if offset is None:
-            return TusResponse(status=404)
+        tus_file = TusFile.get_tusfile_or_404(str(resource_id))
 
         return TusResponse(status=200,
                            extra_headers={
-                               'Upload-Offset': offset,
-                               'Upload-Length': file_size})
+                               'Upload-Offset': tus_file.offset,
+                               'Upload-Length': tus_file.file_size})
 
     def patch(self, request, resource_id, *args, **kwargs):
 
-        tus_file = TusFile(str(resource_id))
+        tus_file = TusFile.get_tusfile_or_404(str(resource_id))
         chunk = TusChunk(request)
 
         if not tus_file.is_valid():
