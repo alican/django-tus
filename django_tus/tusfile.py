@@ -1,12 +1,13 @@
 import logging
 import os
-import uuid
-import string
 import random
-from django.core.files.storage import FileSystemStorage
+import shutil
+import string
+import uuid
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.storage import FileSystemStorage
 
 from django_tus.response import TusResponse
 
@@ -60,7 +61,6 @@ class TusFile:
         self.metadata = cache.get("tus-uploads/{}/metadata".format(resource_id))
         self.offset = cache.get("tus-uploads/{}/offset".format(resource_id))
 
-
     @staticmethod
     def get_tusfile_or_404(resource_id):
         if TusFile.resource_exists(str(resource_id)):
@@ -106,7 +106,7 @@ class TusFile:
         else:
             return ValueError()
 
-        os.rename(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
+        shutil.move(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
 
     def clean(self):
         cache.delete_many([
