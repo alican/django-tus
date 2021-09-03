@@ -3,7 +3,6 @@ import os
 import uuid
 import string
 import random
-from django.core.files import File
 from django.core.files.storage import FileSystemStorage
 
 from django.conf import settings
@@ -54,7 +53,7 @@ class TusFile:
     def get_storage(self):
         return FileSystemStorage()
 
-    def __init__(self, resource_id):
+    def __init__(self, resource_id: str):
         self.resource_id = resource_id
         self.filename = cache.get("tus-uploads/{}/filename".format(resource_id))
         self.file_size = int(cache.get("tus-uploads/{}/file_size".format(resource_id)))
@@ -63,7 +62,18 @@ class TusFile:
 
 
     @staticmethod
-    def create_initial_file(metadata, file_size):
+    def get_tusfile_or_404(resource_id):
+        if TusFile.resource_exists(str(resource_id)):
+            return TusFile(resource_id)
+        else:
+            raise TusResponse(status=404)
+
+    @staticmethod
+    def resource_exists(resource_id: str):
+        return cache.get("tus-uploads/{}/filename".format(resource_id), None) is not None
+
+    @staticmethod
+    def create_initial_file(metadata, file_size: int):
         resource_id = str(uuid.uuid4())
         cache.add("tus-uploads/{}/filename".format(resource_id), "{}".format(metadata.get("filename")), settings.TUS_TIMEOUT)
         cache.add("tus-uploads/{}/file_size".format(resource_id), file_size, settings.TUS_TIMEOUT)
@@ -96,8 +106,7 @@ class TusFile:
         else:
             return ValueError()
 
-        os.renames(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
-
+        os.rename(self.get_path(), os.path.join(settings.TUS_DESTINATION_DIR, self.filename))
 
     def clean(self):
         cache.delete_many([
@@ -107,20 +116,15 @@ class TusFile:
             "tus-uploads/{}/metadata".format(self.resource_id),
         ])
 
-    def _write_file(self, path, offset, content):
-        with open(path, "wb") as f:
-            outfile = File(f)
-            outfile.seek(offset)
-            outfile.write(content)
-
     @staticmethod
     def check_existing_file(filename: str):
         return os.path.lexists(os.path.join(settings.TUS_DESTINATION_DIR, filename))
 
-
     def write_init_file(self):
         try:
-            self._write_file(self.get_path(), self.file_size, b"\0")
+            with open(self.get_path(), 'wb') as f:
+                f.seek(self.file_size - 1)
+                f.write(b'\0')
         except IOError as e:
             error_message = "Unable to create file: {}".format(e)
             logger.error(error_message, exc_info=True)
@@ -128,7 +132,9 @@ class TusFile:
 
     def write_chunk(self, chunk):
         try:
-            self._write_file(self.get_path(), chunk.offset, chunk.content)
+            with open(self.get_path(), 'r+b') as f:
+                f.seek(chunk.offset)
+                f.write(chunk.content)
             self.offset = cache.incr("tus-uploads/{}/offset".format(self.resource_id), chunk.chunk_size)
 
         except IOError:
