@@ -1,6 +1,7 @@
 from django.conf import settings
-from django.http import HttpResponse
-from django_tus import tus_api_version, tus_api_version_supported, tus_api_extensions
+from django.http import Http404, HttpResponse
+
+from django_tus import tus_api_extensions, tus_api_version, tus_api_version_supported
 
 
 class TusResponse(HttpResponse):
@@ -27,3 +28,6 @@ class TusResponse(HttpResponse):
         self.add_headers(self._base_tus_headers)
         if extra_headers:
             self.add_headers(extra_headers)
+
+class Tus404(TusResponse, Http404):
+    pass
