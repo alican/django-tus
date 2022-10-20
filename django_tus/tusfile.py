@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
 
-from django_tus.response import TusResponse
+from django_tus.response import Tus404, TusResponse
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class TusFile:
         if TusFile.resource_exists(str(resource_id)):
             return TusFile(resource_id)
         else:
-            raise TusResponse(status=404)
+            raise Tus404()
 
     @staticmethod
     def resource_exists(resource_id: str):
