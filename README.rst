@@ -39,14 +39,19 @@ Install django-tus::
 Add 'django_tus' to your INSTALLED_APPS setting.::
 
     INSTALLED_APPS = (
-    ...
-    'django_tus',
+        ...
+        'django_tus',
     )
 
 Add following urls to your urls.py.::
 
-    path('upload/', TusUpload.as_view(), name='tus_upload'),
-    path('upload/<uuid:resource_id>', TusUpload.as_view(), name='tus_upload_chunks'),
+    from django.urls import re_path
+    from django_tus.views import TusUpload
+
+    ...
+
+    re_path('upload/', TusUpload.as_view(), name='tus_upload'),
+    re_path('upload/<uuid:resource_id>', TusUpload.as_view(), name='tus_upload_chunks'),
 
 
 Configure and add this settings in your settings.py::
