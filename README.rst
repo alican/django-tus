@@ -62,10 +62,10 @@ the tus client::
 
     DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
 
-
 Todo
 --------
 
+* Concatenation Tus extension is not implemented
 * More Tus-Extensions
 
 Running Tests
