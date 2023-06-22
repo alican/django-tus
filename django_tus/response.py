@@ -5,17 +5,16 @@ from django_tus import tus_api_extensions, tus_api_version, tus_api_version_supp
 
 
 class TusResponse(HttpResponse):
-
     _base_tus_headers = {
-        'Tus-Resumable': tus_api_version,
-        'Tus-Version': ",".join(tus_api_version_supported),
-        'Tus-Extension': ",".join(tus_api_extensions),
-        'Tus-Max-Size': settings.TUS_MAX_FILE_SIZE,
-        'Access-Control-Allow-Origin': "*",
-        'Access-Control-Allow-Methods': "PATCH,HEAD,GET,POST,OPTIONS",
-        'Access-Control-Expose-Headers': "Tus-Resumable,upload-length,upload-metadata,Location,Upload-Offset",
-        'Access-Control-Allow-Headers': "Tus-Resumable,upload-length,upload-metadata,Location,Upload-Offset,content-type",
-        'Cache-Control': 'no-store'
+        "Tus-Resumable": tus_api_version,
+        "Tus-Version": ",".join(tus_api_version_supported),
+        "Tus-Extension": ",".join(tus_api_extensions),
+        "Tus-Max-Size": settings.TUS_MAX_FILE_SIZE,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "PATCH,HEAD,GET,POST,OPTIONS",
+        "Access-Control-Expose-Headers": "Tus-Resumable,upload-length,upload-metadata,Location,Upload-Offset",
+        "Access-Control-Allow-Headers": "Tus-Resumable,upload-length,upload-metadata,Location,Upload-Offset,content-type",
+        "Cache-Control": "no-store",
     }
 
     def add_headers(self, headers: dict):
@@ -28,6 +27,7 @@ class TusResponse(HttpResponse):
         self.add_headers(self._base_tus_headers)
         if extra_headers:
             self.add_headers(extra_headers)
+
 
 class Tus404(TusResponse, Http404):
     pass

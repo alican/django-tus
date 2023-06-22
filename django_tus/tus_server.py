@@ -1,5 +1,3 @@
-
-
 class TusServer:
     def handshake(self):
         """
@@ -7,17 +5,20 @@ class TusServer:
 
         :return:
         """
+
     def start(self, request):
         """
 
         :param request:
         :return:
         """
+
     def upload(self):
         """
 
         :return:
         """
+
     def finish(self):
         """
 

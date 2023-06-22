@@ -1,11 +1,11 @@
-django-appconf
-pathvalidate==2.3.0
 coverage==5.3
+django-appconf
 flake8>=3.8.3
 mock>=3.0.5
-tox>=3.20.0
-pytest-pythonpath
+pathvalidate==2.3.0
 pytest-cov
 pytest-django
 pytest-logger
+pytest-pythonpath
+tox>=3.20.0
 tuspy
