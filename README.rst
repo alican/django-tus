@@ -62,6 +62,16 @@ the tus client::
 
     DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
 
+Since django-tus uses the django cache, if you are running multiple instances (e.g. via uwsgi) you need to change
+the default cache to either database-backed or file-backed, for example like this::
+
+    CACHES = {
+      'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/var/tmp/django_cache',
+      }
+    }
+
 Todo
 --------
 

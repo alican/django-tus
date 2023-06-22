@@ -123,8 +123,9 @@ class TusFile:
     def write_init_file(self):
         try:
             with open(self.get_path(), 'wb') as f:
-                f.seek(self.file_size - 1)
-                f.write(b'\0')
+                if self.file_size != 0:
+                    f.seek(self.file_size - 1)
+                    f.write(b'\0')
         except IOError as e:
             error_message = "Unable to create file: {}".format(e)
             logger.error(error_message, exc_info=True)
