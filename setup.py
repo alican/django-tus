@@ -27,7 +27,7 @@ if sys.argv[-1] == "tag":
     os.system("git push --tags")
     sys.exit()
 
-history = open("HISTORY.rst").read().replace(".. :changelog:", "")
+history = open("HISTORY.md").read().replace(".. :changelog:", "")
 
 
 def read(f):
@@ -37,8 +37,8 @@ def read(f):
 setup(
     name="django-tus",
     version=version,
-    description="Django app implementing server side of tus v1.0.0 powering resumable file uploads for django projects",
-    long_description=read("README.rst"),
+    description="Django app implementing server side of tus v1.0.0 powering resumable file uploads for Django projects",
+    long_description=read("README.md"),
     author="Alican Toprak",
     author_email="alican@querhin.com",
     url="https://github.com/alican/django-tus",
@@ -47,31 +47,29 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        "django>=2.2",
+        "django>=4.2",
         "django-appconf",
-        "pathvalidate==2.3.0",
+        "pathvalidate==3.0",
     ],
     license="MIT",
     long_description_content_type="text/x-rst",
     zip_safe=False,
     keywords="django-tus",
-    python_requires=">=3.5",
+    python_requires=">=3.9",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Framework :: Django",
-        "Framework :: Django :: 2.2",
-        "Framework :: Django :: 3.0",
-        "Framework :: Django :: 3.1",
         "Framework :: Django :: 3.2",
+        "Framework :: Django :: 4.0",
+        "Framework :: Django :: 4.1",
+        "Framework :: Django :: 4.2",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License",
         "Natural Language :: English",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Internet :: WWW/HTTP",
     ],
 )

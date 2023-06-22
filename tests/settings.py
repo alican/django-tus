@@ -41,12 +41,12 @@ MEDIA_ROOT = os.path.dirname(os.path.abspath(__file__)) + "/upload"
 
 MEDIA_URL = "media/"
 
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sites",
     "django_tus",
-)
+]
 
 PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
 
