@@ -113,6 +113,7 @@ class TusUpload(View):
         tus_upload_finished_signal.send(
             sender=self.__class__,
             metadata=tus_file.metadata,
+            resource_id=tus_file.resource_id,
             filename=tus_file.filename,
             upload_file_path=tus_file.get_path(),
             file_size=tus_file.file_size,
