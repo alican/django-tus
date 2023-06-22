@@ -104,12 +104,12 @@ class TusUpload(View):
             tus_file.rename()
             tus_file.clean()
 
-            self.send_signal(tus_file)
+            self.send_signal(tus_file, request)
             self.finished()
 
         return TusResponse(status=204, extra_headers={'Upload-Offset': tus_file.offset})
 
-    def send_signal(self, tus_file):
+    def send_signal(self, tus_file, request):
         tus_upload_finished_signal.send(
             sender=self.__class__,
             metadata=tus_file.metadata,
@@ -117,7 +117,8 @@ class TusUpload(View):
             upload_file_path=tus_file.get_path(),
             file_size=tus_file.file_size,
             upload_url=settings.TUS_UPLOAD_URL,
-            destination_folder=settings.TUS_DESTINATION_DIR)
+            destination_folder=settings.TUS_DESTINATION_DIR,
+            request=request)
 
     def validate_filename(self, metadata):
         filename = metadata.get("filename", "")

@@ -10,4 +10,5 @@ This signal provides the following keyword arguments:
     file_size
     upload_url
     destination_folder
+    request
 """
