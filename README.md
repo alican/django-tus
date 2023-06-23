@@ -42,13 +42,13 @@ INSTALLED_APPS = [
 Add following urls to your urls.py:
 
 ```py
-from django.urls import re_path
+from django.urls import path
 from django_tus.views import TusUpload
 
 ...
 
-re_path("upload/", TusUpload.as_view(), name="tus_upload"),
-re_path("upload/<uuid:resource_id>", TusUpload.as_view(), name="tus_upload_chunks"),
+path("upload/", TusUpload.as_view(), name="tus_upload"),
+path("upload/<uuid:resource_id>/", TusUpload.as_view(), name="tus_upload_chunks"),
 ```
 
 Configure and add these settings in your settings.py:

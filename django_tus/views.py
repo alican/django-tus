@@ -39,15 +39,15 @@ class TusUpload(View):
         metadata = {}
         if request.META.get("HTTP_UPLOAD_METADATA"):
             for kv in request.META.get("HTTP_UPLOAD_METADATA").split(","):
-                splited_metadata = kv.split(" ")
-                if len(splited_metadata) == 2:
-                    key, value = splited_metadata
+                split_metadata = kv.split(" ")
+                if len(split_metadata) == 2:
+                    key, value = split_metadata
                     value = base64.b64decode(value)
                     if isinstance(value, bytes):
                         value = value.decode()
                     metadata[key] = value
                 else:
-                    metadata[splited_metadata[0]] = ""
+                    metadata[split_metadata[0]] = ""
         return metadata
 
     def options(self, request, *args, **kwargs):
